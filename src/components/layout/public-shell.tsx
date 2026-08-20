@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Wordmark } from "@/components/brand";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { Button } from "@/components/ui/button";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useEngine } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -147,44 +146,16 @@ function DeskLink({
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
-  const { user, isPending } = useCurrentUserState();
-  if (isPending) {
-    if (mobile) return null;
-    return (
-      <span className="hidden h-9 w-20 animate-pulse rounded-md bg-cream-deep sm:inline-flex" />
-    );
-  }
   if (mobile) {
-    if (user) {
-      return (
-        <Link to="/studio" onClick={onNavigate} className="flex min-h-11 items-center text-sm font-medium">
-          The Barn Desk
-        </Link>
-      );
-    }
     return (
-      <Link
-        to="/login"
-        search={{ next: "/studio" }}
-        onClick={onNavigate}
-        className="flex min-h-11 items-center text-sm font-medium"
-      >
-        Sign in to the desk
+      <Link to="/studio" onClick={onNavigate} className="flex min-h-11 items-center text-sm font-medium">
+        The Barn Desk
       </Link>
-    );
-  }
-  if (user) {
-    return (
-      <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-        <Link to="/studio" aria-label="The Barn Desk">
-          Desk
-        </Link>
-      </Button>
     );
   }
   return (
     <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-      <Link to="/login" search={{ next: "/studio" }} aria-label="Sign in to the desk">
+      <Link to="/studio" aria-label="The Barn Desk">
         The desk
       </Link>
     </Button>
