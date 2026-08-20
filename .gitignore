@@ -16,5 +16,7 @@ attachments
 .node_modules.lock
 .project_id
 qa-*.mjs
+*.zip
+
 AGENTS.md
 startup.sh
