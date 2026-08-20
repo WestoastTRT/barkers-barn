@@ -17,6 +17,7 @@ import { Route as StoryRouteImport } from './routes/story'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as WatchRouteImport } from './routes/watch'
+import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as LooksIndexRouteImport } from './routes/looks/index'
 import { Route as LooksIdRouteImport } from './routes/looks.$id'
 import { Route as ShopIndexRouteImport } from './routes/shop/index'
@@ -70,6 +71,11 @@ const SupportRoute = SupportRouteImport.update({
 const WatchRoute = WatchRouteImport.update({
   id: '/watch',
   path: '/watch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrdersRoute = ApiOrdersRouteImport.update({
+  id: '/api/orders',
+  path: '/api/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LooksIndexRoute = LooksIndexRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof StudioRouteWithChildren
   '/support': typeof SupportRoute
   '/watch': typeof WatchRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/looks/$id': typeof LooksIdRoute
   '/shop/$slug': typeof ShopSlugRoute
   '/studio/copy': typeof StudioCopyRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/story': typeof StoryRoute
   '/support': typeof SupportRoute
   '/watch': typeof WatchRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/looks/$id': typeof LooksIdRoute
   '/shop/$slug': typeof ShopSlugRoute
   '/studio/copy': typeof StudioCopyRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/studio': typeof StudioRouteWithChildren
   '/support': typeof SupportRoute
   '/watch': typeof WatchRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/looks/$id': typeof LooksIdRoute
   '/shop/$slug': typeof ShopSlugRoute
   '/studio/copy': typeof StudioCopyRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/support'
     | '/watch'
+    | '/api/orders'
     | '/looks/$id'
     | '/shop/$slug'
     | '/studio/copy'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/story'
     | '/support'
     | '/watch'
+    | '/api/orders'
     | '/looks/$id'
     | '/shop/$slug'
     | '/studio/copy'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/support'
     | '/watch'
+    | '/api/orders'
     | '/looks/$id'
     | '/shop/$slug'
     | '/studio/copy'
@@ -294,6 +306,7 @@ export interface RootRouteChildren {
   StudioRoute: typeof StudioRouteWithChildren
   SupportRoute: typeof SupportRoute
   WatchRoute: typeof WatchRoute
+  ApiOrdersRoute: typeof ApiOrdersRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiYoutubeCallbackRoute: typeof ApiYoutubeCallbackRoute
 }
@@ -354,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/watch'
       fullPath: '/watch'
       preLoaderRoute: typeof WatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orders': {
+      id: '/api/orders'
+      path: '/api/orders'
+      fullPath: '/api/orders'
+      preLoaderRoute: typeof ApiOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/looks/': {
@@ -515,6 +535,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudioRoute: StudioRouteWithChildren,
   SupportRoute: SupportRoute,
   WatchRoute: WatchRoute,
+  ApiOrdersRoute: ApiOrdersRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiYoutubeCallbackRoute: ApiYoutubeCallbackRoute,
 }

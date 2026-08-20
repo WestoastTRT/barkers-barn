@@ -10,7 +10,8 @@ const rawDatabaseUrl =
 const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 const onVercel = Boolean(
-  typeof process !== "undefined" && process.env.VERCEL,
+  typeof process !== "undefined" &&
+    (process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION),
 );
 
 /**
@@ -241,6 +242,7 @@ if (typeof window === "undefined" && dbSource === "pglite" && !onVercel) {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);
+    if (onVercel) return;
     throw err;
   });
 }

@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { StudioShell } from "@/components/layout/studio-shell";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { loadLibrary } from "@/lib/studio-api";
 import { useEngine } from "@/lib/store";
 
 export const Route = createFileRoute("/studio")({
@@ -32,7 +31,8 @@ function LibrarySync() {
   const hydrate = useEngine((s) => s.hydrateLibrary);
   useEffect(() => {
     let alive = true;
-    loadLibrary()
+    import("@/lib/studio-api")
+      .then(({ loadLibrary }) => loadLibrary())
       .then((lib) => {
         if (alive) hydrate(lib);
       })

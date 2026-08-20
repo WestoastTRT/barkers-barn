@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { PRODUCTS } from "@/lib/data/catalog";
-import { placeBarnOrder } from "@/lib/orders-api";
 import { useEngine } from "@/lib/store";
 import { formatUsd } from "@/lib/utils";
 
@@ -43,23 +42,28 @@ export function CartDrawer() {
     e.preventDefault();
     setBusy(true);
     try {
-      const res = await placeBarnOrder({
-        data: {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           name,
           email,
           note,
           lines: merch.map((l) => ({ slug: l.slug, qty: l.qty })),
-        },
+        }),
       });
-      if (!res.ok) {
-        toast.error(res.error);
+      const data = (await res.json()) as
+        | { ok: true; id: number }
+        | { ok: false; error: string };
+      if (!data.ok) {
+        toast.error(data.error);
         return;
       }
       if (aff.length) openRetailers();
       toast.success(
         aff.length
-          ? `Order #${res.id} in. Retailer tabs opened for the rest.`
-          : `Order #${res.id} in. The barn will email ${email}.`,
+          ? `Order #${data.id} in. Retailer tabs opened for the rest.`
+          : `Order #${data.id} in. The barn will email ${email}.`,
       );
       clearCart();
       setChecking(false);

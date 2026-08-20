@@ -157,6 +157,13 @@ export default defineConfig(({ command, isPreview }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  ssr: {
+    noExternal: [
+      "@tanstack/react-start",
+      "@tanstack/start-server-core",
+      "@tanstack/start-client-core",
+    ],
+  },
   plugins: [
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
