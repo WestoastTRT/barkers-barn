@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Wordmark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,24 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+function deskAuthError(err: unknown) {
+  const msg = err instanceof Error ? err.message : "Could not sign in";
+  const lower = msg.toLowerCase();
+  if (lower.includes("invalid origin")) {
+    return "This desk URL isn’t trusted yet. In Vercel set BETTER_AUTH_URL to https://barkers-barn.vercel.app and redeploy.";
+  }
+  if (lower.includes("already exists") || lower.includes("user already")) {
+    return "That email already has a desk. Sign in instead.";
+  }
+  if (lower.includes("invalid password") || lower.includes("invalid email") || lower.includes("invalid credentials")) {
+    return "Email or password doesn’t match. Create a desk account if this is the first time.";
+  }
+  if (lower.includes("database_url") || lower.includes("neon")) {
+    return "The desk database isn’t connected. Add DATABASE_URL (Neon) in Vercel and redeploy.";
+  }
+  return msg;
+}
+
 function Login() {
   const { next } = Route.useSearch();
   const dest = next && next.startsWith("/") ? next : "/studio";
@@ -22,6 +40,14 @@ function Login() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showBroker, setShowBroker] = useState(false);
+
+  useEffect(() => {
+    const h = window.location.hostname;
+    setShowBroker(
+      h.endsWith(".grok-sandbox.com") || h === "localhost" || h === "127.0.0.1",
+    );
+  }, []);
 
   async function onEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +73,7 @@ function Login() {
       }
       window.location.assign(dest);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not sign in");
+      toast.error(deskAuthError(err));
       setBusy(false);
     }
   }
@@ -66,24 +92,26 @@ function Login() {
           <p className="mt-8 text-sm text-chrome">Sign-in is disabled in this build.</p>
         ) : (
           <>
-            <div className="mt-8 flex flex-col gap-3">
-              {GROK_PROVIDERS.map((p) => (
-                <Button
-                  key={p.providerId}
-                  variant="cream"
-                  className="w-full"
-                  type="button"
-                  onClick={() => void signIn(p.providerId, { callbackURL: dest, errorCallbackURL: "/login" })}
-                >
-                  Continue with {p.label}
-                </Button>
-              ))}
-            </div>
+            {showBroker && (
+              <div className="mt-8 flex flex-col gap-3">
+                {GROK_PROVIDERS.map((p) => (
+                  <Button
+                    key={p.providerId}
+                    variant="cream"
+                    className="w-full"
+                    type="button"
+                    onClick={() => void signIn(p.providerId, { callbackURL: dest, errorCallbackURL: "/login" })}
+                  >
+                    Continue with {p.label}
+                  </Button>
+                ))}
+              </div>
+            )}
 
             {emailAndPasswordEnabled && (
               <>
                 <p className="mt-8 text-center text-[11px] tracking-[0.18em] text-chrome uppercase">
-                  Or the barn email
+                  {showBroker ? "Or the barn email" : "Barn email"}
                 </p>
                 <form onSubmit={onEmail} className="mt-4 flex flex-col gap-3">
                   {mode === "up" && (
@@ -97,6 +125,7 @@ function Login() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         autoComplete="name"
+                        placeholder="Christine or Amanda"
                       />
                     </div>
                   )}
@@ -145,7 +174,7 @@ function Login() {
           </>
         )}
 
-        <p className="mt-10 text-xs text-chrome">Shop and Super Thanks stay public.</p>
+        <p className="mt-10 text-xs text-chrome">Shop and Super Thanks stay public. Google/X sign-in is for the Grok preview only.</p>
       </main>
     </div>
   );

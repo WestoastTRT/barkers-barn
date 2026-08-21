@@ -14,6 +14,14 @@ const onVercel = Boolean(
     (process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION),
 );
 
+// Auth/server.ts imports this module first. On Vercel, Better Auth 403s
+// email sign-in as "Invalid origin" unless BETTER_AUTH_URL matches the public
+// site. Bake the production origin when the dashboard var was skipped.
+if (onVercel && typeof process !== "undefined") {
+  const raw = process.env.BETTER_AUTH_URL?.trim().replace(/\/+$/, "");
+  process.env.BETTER_AUTH_URL = raw || "https://barkers-barn.vercel.app";
+}
+
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
  * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
@@ -179,6 +187,9 @@ async function createSql(): Promise<Sql> {
       "@/lib/db is server-only — call getSql() from a createServerFn handler " +
         "or a server route loader, never from client code.",
     );
+  }
+  if (onVercel && !databaseUrl) {
+    throw new Error("DATABASE_URL (Neon) is required on Vercel for the desk.");
   }
   return dbSource === "neon" ? createNeonSql() : createPgliteSql();
 }
