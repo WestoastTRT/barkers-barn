@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Wordmark } from "@/components/brand";
@@ -26,8 +26,14 @@ function deskAuthError(err: unknown) {
   if (lower.includes("invalid password") || lower.includes("invalid email") || lower.includes("invalid credentials")) {
     return "Email or password doesn’t match. Create a desk account if this is the first time.";
   }
-  if (lower.includes("database_url") || lower.includes("neon")) {
-    return "The desk database isn’t connected. Add DATABASE_URL (Neon) in Vercel and redeploy.";
+  if (
+    lower.includes("database_url") ||
+    lower.includes("neon") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("internal server") ||
+    lower === "could not sign in"
+  ) {
+    return "Could not open a desk yet. Add DATABASE_URL (Neon) in Vercel, then redeploy, then create the account again.";
   }
   return msg;
 }
@@ -35,7 +41,7 @@ function deskAuthError(err: unknown) {
 function Login() {
   const { next } = Route.useSearch();
   const dest = next && next.startsWith("/") ? next : "/studio";
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up">("up");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -63,13 +69,13 @@ function Login() {
           password,
           name: name.trim() || "Barn desk",
         });
-        if (error) throw new Error(error.message);
+        if (error) throw new Error(error.message || "Could not sign in");
       } else {
         const { error } = await authClient.signIn.email({
           email: email.trim(),
           password,
         });
-        if (error) throw new Error(error.message);
+        if (error) throw new Error(error.message || "Could not sign in");
       }
       window.location.assign(dest);
     } catch (err) {
@@ -82,11 +88,13 @@ function Login() {
     <div className="theme-studio flex min-h-dvh flex-col">
       <div className="barn-stripes h-1.5 w-full" />
       <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12">
-        <Link to="/barn" className="self-start">
+        <div className="self-start">
           <Wordmark invert />
-        </Link>
+        </div>
         <p className="mt-10 text-[11px] tracking-[0.22em] text-chrome uppercase">The desk</p>
-        <h1 className="font-display mt-2 text-5xl tracking-wide text-cream">Sign in to the studio</h1>
+        <h1 className="font-display mt-2 text-5xl tracking-wide text-cream">
+          {mode === "up" ? "Create a desk account" : "Sign in to the studio"}
+        </h1>
 
         {!authEnabled ? (
           <p className="mt-8 text-sm text-chrome">Sign-in is disabled in this build.</p>
@@ -174,13 +182,7 @@ function Login() {
           </>
         )}
 
-        <p className="mt-10 text-xs text-chrome">
-          Shop and Super Thanks stay public at{" "}
-          <Link to="/barn" className="text-cream underline-offset-4 hover:underline">
-            the barn site
-          </Link>
-          . Google/X sign-in is for the Grok preview only.
-        </p>
+        <p className="mt-10 text-xs text-chrome">Christine and Amanda’s barn desk. Email, 8+ character password.</p>
       </main>
     </div>
   );

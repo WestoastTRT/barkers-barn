@@ -3,6 +3,29 @@ import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
+function bootstrapVercelEnv() {
+  if (typeof process === "undefined") return;
+  const onVercel = Boolean(
+    process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION,
+  );
+  if (!onVercel) return;
+  const origin = process.env.BETTER_AUTH_URL?.trim().replace(/\/+$/, "");
+  process.env.BETTER_AUTH_URL = origin || "https://barkers-barn.vercel.app";
+  if (!process.env.DATABASE_URL?.trim()) {
+    const alt = [
+      process.env.POSTGRES_URL,
+      process.env.POSTGRES_PRISMA_URL,
+      process.env.NEON_DATABASE_URL,
+    ].find((v) => v?.trim());
+    if (alt) process.env.DATABASE_URL = alt.trim();
+  }
+  if (!process.env.BETTER_AUTH_SECRET?.trim()) {
+    process.env.BETTER_AUTH_SECRET =
+      "barkers-barn-desk-" + (process.env.VERCEL_GIT_COMMIT_SHA || "classic-car-sisters-1922");
+  }
+}
+bootstrapVercelEnv();
+
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
 const rawDatabaseUrl =
@@ -13,14 +36,6 @@ const onVercel = Boolean(
   typeof process !== "undefined" &&
     (process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION),
 );
-
-// Auth/server.ts imports this module first. On Vercel, Better Auth 403s
-// email sign-in as "Invalid origin" unless BETTER_AUTH_URL matches the public
-// site. Bake the production origin when the dashboard var was skipped.
-if (onVercel && typeof process !== "undefined") {
-  const raw = process.env.BETTER_AUTH_URL?.trim().replace(/\/+$/, "");
-  process.env.BETTER_AUTH_URL = raw || "https://barkers-barn.vercel.app";
-}
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured

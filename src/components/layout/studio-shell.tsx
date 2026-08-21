@@ -1,6 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Clapperboard,
   Gauge,
   HeartHandshake,
   LayoutDashboard,
@@ -67,14 +66,6 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-            <Link
-              to="/barn"
-              className="ml-1 flex size-10 shrink-0 items-center justify-center rounded-md text-sm text-chrome hover:text-cream min-[1360px]:h-10 min-[1360px]:w-auto min-[1360px]:px-2.5"
-              aria-label="Public site"
-            >
-              <Clapperboard className="size-4" />
-              <span className="hidden min-[1360px]:inline">Public</span>
-            </Link>
             <AccountChip />
           </nav>
         </div>
