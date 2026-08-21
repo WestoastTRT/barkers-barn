@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { VIDEOS, type Placement, type Video } from "@/lib/data/catalog";
 import { useEngine } from "@/lib/store";
-import { upsertTape } from "@/lib/studio-api";
+import { deskCall } from "@/lib/desk-client";
 import { STATUS_LABEL, exportPackText, type DraftPlacement } from "@/lib/super-pack";
 import { getTapeFileUrl } from "@/lib/tape-files";
 import {
@@ -459,16 +459,14 @@ function Inspector({ video }: { video: Video }) {
   if (!draft) return null;
 
   function persist(next = draft) {
-    void upsertTape({
-      data: {
-        video: {
-          ...video,
-          pinnedComment: next.pinnedComment,
-          descriptionLead: next.descriptionLead,
-          placements: next.placements,
-        },
-        draft: next,
+    void deskCall("upsertTape", {
+      video: {
+        ...video,
+        pinnedComment: next.pinnedComment,
+        descriptionLead: next.descriptionLead,
+        placements: next.placements,
       },
+      draft: next,
     }).catch(() => {});
   }
 

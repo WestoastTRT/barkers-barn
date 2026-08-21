@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { type Video, type VideoType } from "@/lib/data/catalog";
+import { deskCall } from "@/lib/desk-client";
 import { buildOptimizedDraft } from "@/lib/optimize";
-import { upsertTape, optimizeTape } from "@/lib/studio-api";
+import { type VideoDraft } from "@/lib/super-pack";
 import { useEngine } from "@/lib/store";
 import { putTapeFile, readVideoDuration } from "@/lib/tape-files";
 import { parseYoutubeId, stampToSeconds } from "@/lib/utils";
@@ -29,15 +30,17 @@ export function ImportDock({
   const [drag, setDrag] = useState(false);
 
   async function dress(video: Video, useGrok: boolean) {
-    const result = await optimizeTape({
-      data: {
-        title: video.title,
-        type: video.type,
-        durationSec: video.durationSec,
-        views: video.views,
-        campaignId: video.campaignId,
-        useGrok,
-      },
+    const result = await deskCall<{
+      score: number;
+      why: string;
+      draft: VideoDraft;
+    }>("optimizeTape", {
+      title: video.title,
+      type: video.type,
+      durationSec: video.durationSec,
+      views: video.views,
+      campaignId: video.campaignId,
+      useGrok,
     });
     const draft = {
       ...result.draft,
@@ -53,7 +56,7 @@ export function ImportDock({
       placements: draft.placements,
     };
     putVideo(dressed, draft);
-    await upsertTape({ data: { video: dressed, draft } }).catch(() => {});
+    await deskCall("upsertTape", { video: dressed, draft }).catch(() => {});
     return dressed;
   }
 

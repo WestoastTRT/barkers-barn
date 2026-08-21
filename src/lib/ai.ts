@@ -1,5 +1,3 @@
-import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
 import { VIDEOS, CAMPAIGNS } from "@/lib/data/catalog";
 
 export type CopyKind =
@@ -9,10 +7,7 @@ export type CopyKind =
   | "community"
   | "instagram";
 
-export const generateBarnCopy = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { videoId: string; kind: CopyKind }) => input)
-  .handler(async ({ data }) => {
+export async function generateBarnCopy(data: { videoId: string; kind: CopyKind }) {
     const video = VIDEOS.find((v) => v.id === data.videoId);
     if (!video) return { ok: false as const, error: "Unknown video" };
 
@@ -72,7 +67,7 @@ export const generateBarnCopy = createServerFn({ method: "POST" })
     } catch {
       return { ok: true as const, text: fallback, source: "template" as const };
     }
-  });
+}
 
 function fallbackCopy(title: string, kind: CopyKind, campaign?: string) {
   const project = campaign ?? "the barn";

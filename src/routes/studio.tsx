@@ -31,10 +31,10 @@ function LibrarySync() {
   const hydrate = useEngine((s) => s.hydrateLibrary);
   useEffect(() => {
     let alive = true;
-    import("@/lib/studio-api")
-      .then(({ loadLibrary }) => loadLibrary())
+    import("@/lib/desk-client")
+      .then(({ deskCall }) => deskCall("loadLibrary"))
       .then((lib) => {
-        if (alive) hydrate(lib);
+        if (alive) hydrate(lib as Parameters<typeof hydrate>[0]);
       })
       .catch(() => {
         /* offline — local drafts still work */

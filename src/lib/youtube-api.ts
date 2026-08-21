@@ -1,5 +1,3 @@
-import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { autoScore, autoWhy, buildOptimizedDraft } from "@/lib/optimize";
 import type { Video } from "@/lib/data/catalog";
@@ -50,11 +48,9 @@ async function loadAccount(userId: string) {
   return rows[0] ?? null;
 }
 
-export const getYoutubeStatus = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+export async function getYoutubeStatus(userId: string) {
     const env = envClient();
-    const acc = await loadAccount(context.userId);
+    const acc = await loadAccount(userId);
     const clientId = acc?.oauth_client_id || env.id;
     return {
       channelId: acc?.channel_id || DEFAULT_CHANNEL_ID,
@@ -68,22 +64,20 @@ export const getYoutubeStatus = createServerFn({ method: "GET" })
       lastSyncAt: acc?.last_sync_at,
       envOAuth: Boolean(env.id && env.secret),
     };
-  });
+}
 
-export const saveYoutubeSettings = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator(
-    (input: {
-      channelId?: string;
-      apiKey?: string;
-      oauthClientId?: string;
-      oauthClientSecret?: string;
-      clearSecrets?: boolean;
-    }) => input,
-  )
-  .handler(async ({ context, data }) => {
+export async function saveYoutubeSettings(
+  userId: string,
+  data: {
+    channelId?: string;
+    apiKey?: string;
+    oauthClientId?: string;
+    oauthClientSecret?: string;
+    clearSecrets?: boolean;
+  },
+) {
     const sql = await getSql();
-    const current = await loadAccount(context.userId);
+    const current = await loadAccount(userId);
     const channelId = (data.channelId || current?.channel_id || DEFAULT_CHANNEL_ID).trim();
     const apiKey = data.clearSecrets
       ? null
@@ -98,7 +92,7 @@ export const saveYoutubeSettings = createServerFn({ method: "POST" })
       insert into youtube_accounts (
         user_id, channel_id, api_key, oauth_client_id, oauth_client_secret, updated_at
       ) values (
-        ${context.userId}, ${channelId}, ${apiKey}, ${oauthClientId}, ${oauthClientSecret}, now()
+        ${userId}, ${channelId}, ${apiKey}, ${oauthClientId}, ${oauthClientSecret}, now()
       )
       on conflict (user_id) do update set
         channel_id = excluded.channel_id,
@@ -108,15 +102,12 @@ export const saveYoutubeSettings = createServerFn({ method: "POST" })
         updated_at = now()
     `;
     return { ok: true as const };
-  });
+}
 
-export const startYoutubeOAuth = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { origin: string }) => input)
-  .handler(async ({ context, data }) => {
+export async function startYoutubeOAuth(userId: string, data: { origin: string }) {
     const origin = safeOrigin(data.origin);
     if (!origin) return { ok: false as const, error: "This origin cannot connect to YouTube OAuth." };
-    const acc = await loadAccount(context.userId);
+    const acc = await loadAccount(userId);
     const env = envClient();
     const clientId = acc?.oauth_client_id || env.id;
     const clientSecret = acc?.oauth_client_secret || env.secret;
@@ -126,11 +117,11 @@ export const startYoutubeOAuth = createServerFn({ method: "POST" })
         error: "Add a Google Cloud OAuth client (YouTube Data API) in the desk, or set it on deploy.",
       };
     }
-    const state = `${context.userId}.${crypto.randomUUID()}`;
+    const state = `${userId}.${crypto.randomUUID()}`;
     const sql = await getSql();
     await sql`
       insert into youtube_accounts (user_id, channel_id, oauth_state, updated_at)
-      values (${context.userId}, ${acc?.channel_id || DEFAULT_CHANNEL_ID}, ${state}, now())
+      values (${userId}, ${acc?.channel_id || DEFAULT_CHANNEL_ID}, ${state}, now())
       on conflict (user_id) do update set oauth_state = excluded.oauth_state, updated_at = now()
     `;
     const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -143,24 +134,20 @@ export const startYoutubeOAuth = createServerFn({ method: "POST" })
     url.searchParams.set("state", state);
     url.searchParams.set("include_granted_scopes", "true");
     return { ok: true as const, url: url.toString() };
-  });
+}
 
-export const disconnectYoutube = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+export async function disconnectYoutube(userId: string) {
     const sql = await getSql();
     await sql`
       update youtube_accounts
       set access_token = null, refresh_token = null, token_expires_at = null, oauth_state = null, updated_at = now()
-      where user_id = ${context.userId}
+      where user_id = ${userId}
     `;
     return { ok: true as const };
-  });
+}
 
-export const syncYoutubeChannel = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    const acc = await loadAccount(context.userId);
+export async function syncYoutubeChannel(userId: string) {
+    const acc = await loadAccount(userId);
     const channelId = acc?.channel_id || DEFAULT_CHANNEL_ID;
     const rssRes = await fetch(
       `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
@@ -177,7 +164,7 @@ export const syncYoutubeChannel = createServerFn({ method: "POST" })
     const details = acc?.api_key ? await fetchVideoDetails(feed.map((v) => v.youtubeId), acc.api_key) : {};
     const sql = await getSql();
     const existing = await sql<{ id: string; youtube_id: string | null; status: string }>`
-      select id, youtube_id, status from studio_tapes where user_id = ${context.userId}
+      select id, youtube_id, status from studio_tapes where user_id = ${userId}
     `;
     const byYt = new Map(existing.filter((r) => r.youtube_id).map((r) => [r.youtube_id as string, r]));
     let imported = 0;
@@ -193,7 +180,7 @@ export const syncYoutubeChannel = createServerFn({ method: "POST" })
           update studio_tapes
           set title = ${item.title}, views = ${views}, duration_sec = ${durationSec},
               published = ${item.published}, updated_at = now()
-          where user_id = ${context.userId} and id = ${hit.id}
+          where user_id = ${userId} and id = ${hit.id}
         `;
         updated += 1;
         continue;
@@ -223,7 +210,7 @@ export const syncYoutubeChannel = createServerFn({ method: "POST" })
           id, user_id, youtube_id, title, duration_sec, views, type, super_score, why,
           campaign_id, source, published, has_file, draft, status, updated_at
         ) values (
-          ${id}, ${context.userId}, ${item.youtubeId}, ${item.title}, ${durationSec}, ${views},
+          ${id}, ${userId}, ${item.youtubeId}, ${item.title}, ${durationSec}, ${views},
           ${type}, ${video.superScore}, ${video.why}, ${null}, ${"youtube"}, ${item.published},
           ${false}, ${JSON.stringify(draft)}, ${"ready"}, now()
         )
@@ -233,7 +220,7 @@ export const syncYoutubeChannel = createServerFn({ method: "POST" })
     }
     await sql`
       insert into youtube_accounts (user_id, channel_id, last_sync_at, updated_at)
-      values (${context.userId}, ${channelId}, now(), now())
+      values (${userId}, ${channelId}, now(), now())
       on conflict (user_id) do update set last_sync_at = now(), updated_at = now()
     `;
     return {
@@ -243,7 +230,7 @@ export const syncYoutubeChannel = createServerFn({ method: "POST" })
       total: feed.length,
       channelTitle: /<title>([^<]+)<\/title>/.exec(xml)?.[1]?.trim() ?? null,
     };
-  });
+}
 
 type YtDetail = { durationSec: number; views: number; categoryId: string; description: string; tags: string[] };
 
@@ -278,12 +265,9 @@ async function fetchVideoDetails(ids: string[], apiKey: string) {
   return map;
 }
 
-export const listYoutubeComments = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { youtubeId: string }) => input)
-  .handler(async ({ context, data }) => {
-    const acc = await loadAccount(context.userId);
-    const token = await ensureAccessToken(context.userId, acc);
+export async function listYoutubeComments(userId: string, data: { youtubeId: string }) {
+    const acc = await loadAccount(userId);
+    const token = await ensureAccessToken(userId, acc);
     const key = acc?.api_key;
     if (!token && !key) {
       return { ok: false as const, error: "Save an API key or connect the channel to read comments." };
@@ -319,14 +303,14 @@ export const listYoutubeComments = createServerFn({ method: "POST" })
       at: it.snippet.topLevelComment.snippet.publishedAt,
     }));
     return { ok: true as const, comments };
-  });
+}
 
-export const pushDescription = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { youtubeId: string; lead: string; title?: string }) => input)
-  .handler(async ({ context, data }) => {
-    const acc = await loadAccount(context.userId);
-    const token = await ensureAccessToken(context.userId, acc);
+export async function pushDescription(
+  userId: string,
+  data: { youtubeId: string; lead: string; title?: string },
+) {
+    const acc = await loadAccount(userId);
+    const token = await ensureAccessToken(userId, acc);
     if (!token) {
       return { ok: false as const, error: "Connect YouTube (OAuth) to write descriptions. RSS sync does not need it." };
     }
@@ -374,17 +358,17 @@ export const pushDescription = createServerFn({ method: "POST" })
     });
     const ok = put.ok;
     const detail = ok ? "Description fold written." : (await put.text()).slice(0, 240);
-    await logPush(context.userId, data.youtubeId, data.title || snippet.title, "description", ok, detail);
+    await logPush(userId, data.youtubeId, data.title || snippet.title, "description", ok, detail);
     if (!ok) return { ok: false as const, error: detail };
     return { ok: true as const, description };
-  });
+}
 
-export const postChannelComment = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { youtubeId: string; text: string; title?: string }) => input)
-  .handler(async ({ context, data }) => {
-    const acc = await loadAccount(context.userId);
-    const token = await ensureAccessToken(context.userId, acc);
+export async function postChannelComment(
+  userId: string,
+  data: { youtubeId: string; text: string; title?: string },
+) {
+    const acc = await loadAccount(userId);
+    const token = await ensureAccessToken(userId, acc);
     if (!token) {
       return { ok: false as const, error: "Connect YouTube (OAuth) to post as the channel. Pinning is still Studio-only." };
     }
@@ -404,14 +388,12 @@ export const postChannelComment = createServerFn({ method: "POST" })
     });
     const ok = res.ok;
     const detail = ok ? "Comment posted as the channel. Pin it in YouTube Studio." : (await res.text()).slice(0, 240);
-    await logPush(context.userId, data.youtubeId, data.title || data.youtubeId, "comment", ok, detail);
+    await logPush(userId, data.youtubeId, data.title || data.youtubeId, "comment", ok, detail);
     if (!ok) return { ok: false as const, error: detail };
     return { ok: true as const };
-  });
+}
 
-export const listYoutubePushes = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+export async function listYoutubePushes(userId: string) {
     const sql = await getSql();
     return sql<{
       id: number;
@@ -424,11 +406,11 @@ export const listYoutubePushes = createServerFn({ method: "GET" })
     }>`
       select id, youtube_id, title, kind, ok, detail, created_at::text
       from youtube_pushes
-      where user_id = ${context.userId}
+      where user_id = ${userId}
       order by id desc
       limit 20
     `;
-  });
+}
 
 async function logPush(
   userId: string,
@@ -555,3 +537,7 @@ export async function finishYoutubeOAuth(opts: {
     where user_id = ${acc.user_id}
   `;
 }
+
+export type YoutubeStatus = Awaited<ReturnType<typeof getYoutubeStatus>>;
+export type YoutubePush = Awaited<ReturnType<typeof listYoutubePushes>>[number];
+

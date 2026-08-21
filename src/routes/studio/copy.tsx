@@ -3,8 +3,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CopyBlock } from "@/components/copy-block";
 import { Button } from "@/components/ui/button";
-import { generateBarnCopy, type CopyKind } from "@/lib/ai";
+import { type CopyKind } from "@/lib/ai";
 import { VIDEOS } from "@/lib/data/catalog";
+import { deskCall } from "@/lib/desk-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/studio/copy")({ component: CopyPage });
@@ -27,7 +28,10 @@ function CopyPage() {
   async function run() {
     setBusy(true);
     try {
-      const res = await generateBarnCopy({ data: { videoId, kind } });
+      const res = await deskCall<
+        | { ok: true; text: string; source: "grok" | "template" }
+        | { ok: false; error: string }
+      >("generateBarnCopy", { videoId, kind });
       if (!res.ok) {
         toast.error(res.error);
         return;

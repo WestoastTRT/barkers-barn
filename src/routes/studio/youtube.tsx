@@ -5,19 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { VIDEOS, type Video } from "@/lib/data/catalog";
+import { deskCall } from "@/lib/desk-client";
 import { useEngine } from "@/lib/store";
-import { loadLibrary } from "@/lib/studio-api";
-import {
-  disconnectYoutube,
-  getYoutubeStatus,
-  listYoutubeComments,
-  listYoutubePushes,
-  postChannelComment,
-  pushDescription,
-  saveYoutubeSettings,
-  startYoutubeOAuth,
-  syncYoutubeChannel,
-} from "@/lib/youtube-api";
+import type { YoutubePush, YoutubeStatus } from "@/lib/youtube-api";
 import { youtubeStudio, youtubeThumb, formatCompact } from "@/lib/utils";
 
 export const Route = createFileRoute("/studio/youtube")({
@@ -28,7 +18,7 @@ export const Route = createFileRoute("/studio/youtube")({
   component: YoutubePage,
 });
 
-type Status = Awaited<ReturnType<typeof getYoutubeStatus>>;
+type Status = YoutubeStatus;
 
 function YoutubePage() {
   const search = Route.useSearch();
@@ -36,7 +26,7 @@ function YoutubePage() {
   const drafts = useEngine((s) => s.drafts);
   const hydrate = useEngine((s) => s.hydrateLibrary);
   const [status, setStatus] = useState<Status | null>(null);
-  const [pushes, setPushes] = useState<Awaited<ReturnType<typeof listYoutubePushes>>>([]);
+  const [pushes, setPushes] = useState<YoutubePush[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [channelId, setChannelId] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -55,10 +45,10 @@ function YoutubePage() {
   }, [custom]);
 
   async function refresh() {
-    const s = await getYoutubeStatus();
+    const s = await deskCall<YoutubeStatus>("getYoutubeStatus");
     setStatus(s);
     setChannelId(s.channelId);
-    setPushes(await listYoutubePushes());
+    setPushes(await deskCall<YoutubePush[]>("listYoutubePushes"));
   }
 
   useEffect(() => {
@@ -74,13 +64,11 @@ function YoutubePage() {
     e.preventDefault();
     setBusy("save");
     try {
-      await saveYoutubeSettings({
-        data: {
-          channelId,
-          apiKey: apiKey || undefined,
-          oauthClientId: clientId || undefined,
-          oauthClientSecret: clientSecret || undefined,
-        },
+      await deskCall("saveYoutubeSettings", {
+        channelId,
+        apiKey: apiKey || undefined,
+        oauthClientId: clientId || undefined,
+        oauthClientSecret: clientSecret || undefined,
       });
       setApiKey("");
       setClientId("");
@@ -97,13 +85,16 @@ function YoutubePage() {
   async function onSync() {
     setBusy("sync");
     try {
-      const res = await syncYoutubeChannel();
+      const res = await deskCall<
+        | { ok: true; total: number; imported: number; updated: number }
+        | { ok: false; error: string }
+      >("syncYoutubeChannel");
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
       toast.success(`Synced ${res.total} tapes · ${res.imported} new · ${res.updated} refreshed`);
-      hydrate(await loadLibrary());
+      hydrate(await deskCall("loadLibrary"));
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
@@ -115,7 +106,10 @@ function YoutubePage() {
   async function onConnect() {
     setBusy("oauth");
     try {
-      const res = await startYoutubeOAuth({ data: { origin: window.location.origin } });
+      const res = await deskCall<{ ok: true; url: string } | { ok: false; error: string }>(
+        "startYoutubeOAuth",
+        { origin: window.location.origin },
+      );
       if (!res.ok) {
         toast.error(res.error);
         return;
@@ -160,7 +154,7 @@ function YoutubePage() {
             <Button
               variant="onDark"
               onClick={() => {
-                void disconnectYoutube().then(() => {
+                void deskCall("disconnectYoutube").then(() => {
                   toast.success("Write access dropped");
                   void refresh();
                 });
@@ -313,8 +307,10 @@ function PushButtons({
         onClick={async () => {
           setBusy(video.id);
           try {
-            const res = await pushDescription({
-              data: { youtubeId: video.youtubeId, lead, title: video.title },
+            const res = await deskCall<{ ok: true } | { ok: false; error: string }>("pushDescription", {
+              youtubeId: video.youtubeId,
+              lead,
+              title: video.title,
             });
             if (!res.ok) toast.error(res.error);
             else toast.success("Description fold written on YouTube");
@@ -333,8 +329,10 @@ function PushButtons({
         onClick={async () => {
           setBusy(video.id);
           try {
-            const res = await postChannelComment({
-              data: { youtubeId: video.youtubeId, text: comment, title: video.title },
+            const res = await deskCall<{ ok: true } | { ok: false; error: string }>("postChannelComment", {
+              youtubeId: video.youtubeId,
+              text: comment,
+              title: video.title,
             });
             if (!res.ok) toast.error(res.error);
             else toast.success("Comment posted. Pin it in Studio.");
@@ -357,7 +355,9 @@ function PushButtons({
         onClick={async () => {
           setOpen((v) => !v);
           if (comments) return;
-          const res = await listYoutubeComments({ data: { youtubeId: video.youtubeId } });
+          const res = await deskCall<
+            { ok: true; comments: { author: string; text: string }[] } | { ok: false; error: string }
+          >("listYoutubeComments", { youtubeId: video.youtubeId });
           if (res.ok) setComments(res.comments);
           else toast.error(res.error);
         }}

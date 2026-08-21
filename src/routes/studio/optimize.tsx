@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { VIDEOS, type Video } from "@/lib/data/catalog";
 import { estimatedLiftUsd } from "@/lib/optimize";
 import { STATUS_LABEL, type VideoDraft } from "@/lib/super-pack";
-import { optimizeTape, upsertTape } from "@/lib/studio-api";
+import { deskCall } from "@/lib/desk-client";
 import { useEngine } from "@/lib/store";
 import { formatCompact, formatUsd, youtubeThumb } from "@/lib/utils";
 
@@ -41,15 +41,17 @@ function OptimizePage() {
   async function runOne(video: Video, useGrok: boolean) {
     setBusy(video.id);
     try {
-      const result = await optimizeTape({
-        data: {
-          title: video.title,
-          type: video.type,
-          durationSec: video.durationSec,
-          views: video.views,
-          campaignId: video.campaignId,
-          useGrok,
-        },
+      const result = await deskCall<{
+        score: number;
+        why: string;
+        draft: VideoDraft;
+      }>("optimizeTape", {
+        title: video.title,
+        type: video.type,
+        durationSec: video.durationSec,
+        views: video.views,
+        campaignId: video.campaignId,
+        useGrok,
       });
       const draft: VideoDraft = {
         ...result.draft,
@@ -65,7 +67,7 @@ function OptimizePage() {
         placements: draft.placements,
       };
       putVideo(dressed, draft);
-      await upsertTape({ data: { video: dressed, draft } }).catch(() => {});
+      await deskCall("upsertTape", { video: dressed, draft }).catch(() => {});
       toast.success(`Dressed “${video.title}”`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Optimizer missed");
