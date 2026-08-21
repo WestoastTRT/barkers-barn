@@ -37,7 +37,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b border-line-dark bg-asphalt/95 backdrop-blur-sm">
         <div className="barn-stripes h-1.5 w-full" />
         <div className="mx-auto flex h-14 min-w-0 max-w-7xl items-center gap-2 px-3 sm:px-4">
-          <Link to="/" aria-label="Back to site" className="shrink-0">
+          <Link to="/studio" aria-label="Barn desk" className="shrink-0">
             <Wordmark invert compact />
           </Link>
           <span className="hidden rounded-full bg-barn px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-cream uppercase lg:inline">
@@ -68,7 +68,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               );
             })}
             <Link
-              to="/watch"
+              to="/barn"
               className="ml-1 flex size-10 shrink-0 items-center justify-center rounded-md text-sm text-chrome hover:text-cream min-[1360px]:h-10 min-[1360px]:w-auto min-[1360px]:px-2.5"
               aria-label="Public site"
             >

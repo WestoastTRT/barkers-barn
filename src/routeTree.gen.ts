@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BarnRouteImport } from './routes/barn'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LooksRouteImport } from './routes/looks'
 import { Route as ShopRouteImport } from './routes/shop'
@@ -37,6 +38,11 @@ import { Route as ApiYoutubeCallbackRouteImport } from './routes/api/youtube/cal
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BarnRoute = BarnRouteImport.update({
+  id: '/barn',
+  path: '/barn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -157,6 +163,7 @@ const ApiYoutubeCallbackRoute = ApiYoutubeCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/barn': typeof BarnRoute
   '/login': typeof LoginRoute
   '/looks': typeof LooksRouteWithChildren
   '/shop': typeof ShopRouteWithChildren
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/barn': typeof BarnRoute
   '/login': typeof LoginRoute
   '/story': typeof StoryRoute
   '/support': typeof SupportRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/barn': typeof BarnRoute
   '/login': typeof LoginRoute
   '/looks': typeof LooksRouteWithChildren
   '/shop': typeof ShopRouteWithChildren
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/barn'
     | '/login'
     | '/looks'
     | '/shop'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/barn'
     | '/login'
     | '/story'
     | '/support'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/barn'
     | '/login'
     | '/looks'
     | '/shop'
@@ -311,6 +323,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BarnRoute: typeof BarnRoute
   LoginRoute: typeof LoginRoute
   LooksRoute: typeof LooksRouteWithChildren
   ShopRoute: typeof ShopRouteWithChildren
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/barn': {
+      id: '/barn'
+      path: '/barn'
+      fullPath: '/barn'
+      preLoaderRoute: typeof BarnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -548,6 +568,7 @@ const StudioRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BarnRoute: BarnRoute,
   LoginRoute: LoginRoute,
   LooksRoute: LooksRouteWithChildren,
   ShopRoute: ShopRouteWithChildren,

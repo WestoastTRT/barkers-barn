@@ -28,7 +28,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur-sm">
         <div className="barn-stripes h-1.5 w-full" aria-hidden="true" />
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
-          <Link to="/" className="min-w-0" aria-label="Classic Car Sisters home">
+          <Link to="/barn" className="min-w-0" aria-label="Classic Car Sisters home">
             <Wordmark />
           </Link>
           <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Primary">

@@ -82,7 +82,7 @@ function Login() {
     <div className="theme-studio flex min-h-dvh flex-col">
       <div className="barn-stripes h-1.5 w-full" />
       <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12">
-        <Link to="/" className="self-start">
+        <Link to="/barn" className="self-start">
           <Wordmark invert />
         </Link>
         <p className="mt-10 text-[11px] tracking-[0.22em] text-chrome uppercase">The desk</p>
@@ -174,7 +174,13 @@ function Login() {
           </>
         )}
 
-        <p className="mt-10 text-xs text-chrome">Shop and Super Thanks stay public. Google/X sign-in is for the Grok preview only.</p>
+        <p className="mt-10 text-xs text-chrome">
+          Shop and Super Thanks stay public at{" "}
+          <Link to="/barn" className="text-cream underline-offset-4 hover:underline">
+            the barn site
+          </Link>
+          . Google/X sign-in is for the Grok preview only.
+        </p>
       </main>
     </div>
   );
